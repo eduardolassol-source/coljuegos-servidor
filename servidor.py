@@ -15,7 +15,8 @@ import threading
 import webbrowser
 import time
 
-PORT = 8520
+import os
+PORT = int(os.environ.get('PORT', 8520))
 API_KEY_FILE = os.path.join(os.path.dirname(__file__), 'api_key.txt')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,7 +51,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
 
     def _cors(self):
-        self.send_header('Access-Control-Allow-Origin', 'http://localhost:' + str(PORT))
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
@@ -188,10 +189,13 @@ if __name__ == '__main__':
     print('   (Ctrl+C para cerrar)')
     print()
 
-    threading.Thread(target=abrir_browser, daemon=True).start()
+    # Solo abrir browser si es local (no en Render)
+    if not os.environ.get('PORT'):
+        threading.Thread(target=abrir_browser, daemon=True).start()
 
     try:
-        with http.server.ThreadingHTTPServer(('localhost', PORT), Handler) as srv:
+        host = '0.0.0.0' if os.environ.get('PORT') else 'localhost'
+        with http.server.ThreadingHTTPServer((host, PORT), Handler) as srv:
             srv.serve_forever()
     except KeyboardInterrupt:
         print('\n👋 Servidor cerrado.')
